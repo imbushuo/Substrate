@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Description>Primitive packages for Substrate content pipeline</Description>
+    <Authors>The Lawrence Industry and its affiliates</Authors>
+    <Copyright>Copyright 2019 The Lawrence Industry and its affiliates. All rights reserved.</Copyright>
+    <Owners>The Lawrence Industry and its affiliates</Owners>
+    <Summary>Primitive packages for Substrate content pipeline</Summary>
+    <Title>Substrate.ContentPipeline.Primitives</Title>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Class1.cs" />
+    <Compile Remove="Models\TransformedContentPageMetadata.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+</Project>
