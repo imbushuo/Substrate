@@ -3,11 +3,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.ApplicationInsights.Channel;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.ApplicationInsights;
 using Substrate.ContentPipeline.Publisher.Configuration;
+using Substrate.ContentPipeline.Publisher.DataAccess;
 using Substrate.ContentPipeline.Publisher.Remote;
 
 namespace Substrate.ContentPipeline.Publisher
@@ -16,6 +19,8 @@ namespace Substrate.ContentPipeline.Publisher
     {
         private IServiceCollection ServiceCollection { get; }
         private IServiceProvider ServiceProvider { get; }
+
+        private InMemoryChannel _channel;
 
         public IConfigurationRoot Configuration { get; }
 
@@ -40,9 +45,17 @@ namespace Substrate.ContentPipeline.Publisher
 
         private void AddServices(IServiceCollection services)
         {
-            services.AddOptions();
-            services.Configure<ApiCredentials>(
-                Configuration.GetSection(nameof(ApiCredentials)));
+            services.AddOptions()
+                .Configure<ApiCredentials>(
+                    Configuration.GetSection(nameof(ApiCredentials)))
+                .Configure<RuntimeDirectory>(
+                    Configuration.GetSection(nameof(RuntimeDirectory)));
+
+            _channel = new InMemoryChannel();
+            services.Configure<TelemetryConfiguration>((config) =>
+            {
+                config.TelemetryChannel = _channel;
+            });
 
             services.AddLogging(logger =>
             {
@@ -50,22 +63,27 @@ namespace Substrate.ContentPipeline.Publisher
 #if DEBUG
                 logger.AddDebug();
 #endif
-                logger.AddApplicationInsights(
-                    Configuration["Telemetry:InstrumentationKey"]);
                 logger.AddFilter<ApplicationInsightsLoggerProvider>(
                     "", LogLevel.Information);
+
+                logger.AddApplicationInsights(
+                    Configuration["Telemetry:InstrumentationKey"]);
             });
 
             services.AddScoped<MediaWikiApiServices>();
+            services.AddSingleton<LocalStateRepository>();
         }
 
         public async Task RunMainLoopAsync(CancellationToken cancellationToken)
         {
             var scopeFactory = ServiceProvider.GetRequiredService<IServiceScopeFactory>();
+            var dbInstance = ServiceProvider.GetRequiredService<LocalStateRepository>();
+
             using (var scope = scopeFactory.CreateScope())
             {
                 var apiSvc = scope.ServiceProvider.GetRequiredService<MediaWikiApiServices>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppServiceBase>>();
+                DateTimeOffset? lastAccess = null;
 
                 var identity = await apiSvc.LoginAsync();
                 if (identity != null)
@@ -79,9 +97,21 @@ namespace Substrate.ContentPipeline.Publisher
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    var currentTime = DateTimeOffset.Now; 
+                    var changeLists = await apiSvc.GetRecentChangesSinceAsync(lastAccess);
+
+                    logger.LogInformation($"{changeLists.Count} item(s) retrieved");
+                    if (changeLists.Count > 0)
+                    {
+                        lastAccess = currentTime;
+                    }
+
                     await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
                 }
             }
+
+            _channel.Flush();
+            dbInstance.Dispose();
         }
     }
 }
