@@ -72,6 +72,7 @@ namespace Substrate.ContentPipeline.Publisher
 
             services.AddScoped<MediaWikiApiServices>();
             services.AddSingleton<LocalStateRepository>();
+            services.AddTransient<PipelineWorker>();
         }
 
         public async Task RunMainLoopAsync(CancellationToken cancellationToken)
@@ -81,35 +82,8 @@ namespace Substrate.ContentPipeline.Publisher
 
             using (var scope = scopeFactory.CreateScope())
             {
-                var apiSvc = scope.ServiceProvider.GetRequiredService<MediaWikiApiServices>();
-                var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppServiceBase>>();
-
-                var identity = await apiSvc.LoginAsync();
-                if (identity != null)
-                {
-                    logger.LogInformation($"MW logged in as {identity.Identity.Name}");
-                }
-                else
-                {
-                    return;
-                }
-
-                DateTimeOffset lastAccess;
-                lastAccess = dbInstance.Get<DateTimeOffset>(nameof(lastAccess));
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var currentTime = DateTimeOffset.Now; 
-                    var changeLists = await apiSvc.GetRecentChangesSinceAsync(lastAccess);
-
-                    logger.LogInformation($"{changeLists.Count} item(s) retrieved");
-                    if (changeLists.Count > 0)
-                    {
-                        lastAccess = currentTime;
-                        dbInstance.Put(nameof(lastAccess), lastAccess);
-                    }
-
-                    await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
-                }
+                var worker = scope.ServiceProvider.GetRequiredService<PipelineWorker>();
+                await worker.RunMainLoopAsync(cancellationToken);
             }
 
             _channel.Flush();
