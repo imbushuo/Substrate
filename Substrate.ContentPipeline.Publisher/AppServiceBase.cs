@@ -83,7 +83,6 @@ namespace Substrate.ContentPipeline.Publisher
             {
                 var apiSvc = scope.ServiceProvider.GetRequiredService<MediaWikiApiServices>();
                 var logger = scope.ServiceProvider.GetRequiredService<ILogger<AppServiceBase>>();
-                DateTimeOffset? lastAccess = null;
 
                 var identity = await apiSvc.LoginAsync();
                 if (identity != null)
@@ -95,6 +94,8 @@ namespace Substrate.ContentPipeline.Publisher
                     return;
                 }
 
+                DateTimeOffset lastAccess;
+                lastAccess = dbInstance.Get<DateTimeOffset>(nameof(lastAccess));
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var currentTime = DateTimeOffset.Now; 
@@ -104,6 +105,7 @@ namespace Substrate.ContentPipeline.Publisher
                     if (changeLists.Count > 0)
                     {
                         lastAccess = currentTime;
+                        dbInstance.Put(nameof(lastAccess), lastAccess);
                     }
 
                     await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
