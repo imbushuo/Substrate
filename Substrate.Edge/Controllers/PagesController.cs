@@ -30,9 +30,9 @@ namespace Substrate.Edge.Controllers
                 }
 
                 var (metadata, content) = await _apiService.GetPageAsync(WebUtility.UrlDecode(title), null);
-                if (!string.IsNullOrEmpty(content))
+                if (content != null)
                 {
-                    return Content(content, "text/html; charset=utf-8");
+                    return File(content, "text/html; charset=utf-8");
                 }
             }
             

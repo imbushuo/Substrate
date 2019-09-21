@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Security.Principal;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -158,7 +159,7 @@ namespace Substrate.MediaWiki.Remote
             return retList;
         }
 
-        public async Task<(ContentPageMetadata, string)> GetPageAsync(
+        public async Task<(ContentPageMetadata, byte[])> GetPageAsync(
             string title, ulong? revId = null)
         {
             var apiParams = new List<KeyValuePair<string, string>>
@@ -195,7 +196,7 @@ namespace Substrate.MediaWiki.Remote
                     metadata.ChangeSetId = changesetId;
                     metadata.PageId = pageId;
 
-                    return (metadata, parsedContent);
+                    return (metadata, (parsedContent != null) ? Encoding.UTF8.GetBytes(parsedContent) : null);
                 }
             }
 
