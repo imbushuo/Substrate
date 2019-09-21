@@ -10,9 +10,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Substrate.ContentPipeline.Primitives.Models;
-using Substrate.ContentPipeline.Publisher.Configuration;
+using Substrate.MediaWiki.Configuration;
 
-namespace Substrate.ContentPipeline.Publisher.Remote
+namespace Substrate.MediaWiki.Remote
 {
     public class MediaWikiApiServices
     {
@@ -22,6 +22,7 @@ namespace Substrate.ContentPipeline.Publisher.Remote
         private CookieContainer _cookieContainer;
 
         public IPrincipal CurrentIdentity { get; private set; }
+        public DateTimeOffset LastLogin { get; private set; }
 
         public MediaWikiApiServices(
             IOptions<ApiCredentials> credentials,
@@ -87,6 +88,7 @@ namespace Substrate.ContentPipeline.Publisher.Remote
                     CurrentIdentity = new GenericPrincipal(
                         new GenericIdentity((string) apiResponse.login.lgusername,
                         _cred.Value.Endpoint), new string[] { });
+                    LastLogin = DateTimeOffset.Now;
                 }
             }
             catch (Exception exc)
@@ -154,6 +156,50 @@ namespace Substrate.ContentPipeline.Publisher.Remote
             while (retList.Count < 20000 && !string.IsNullOrEmpty(continueToken));
 
             return retList;
+        }
+
+        public async Task<(ContentPageMetadata, string)> GetPageAsync(
+            string title, ulong? revId = null)
+        {
+            var apiParams = new List<KeyValuePair<string, string>>
+            {
+                new KeyValuePair<string, string>("action", "parse"),
+                new KeyValuePair<string, string>("format", "json"),
+                new KeyValuePair<string, string>("formatversion", "2")
+            };
+
+            if (revId != null)
+            {
+                apiParams.Add(new KeyValuePair<string, string>("oldid", revId.Value.ToString("G")));
+            }
+            else
+            {
+                apiParams.Add(new KeyValuePair<string, string>("page", title));
+            }
+
+            var metadata = new ContentPageMetadata();
+            using (var httpHandler = new HttpClientHandler { CookieContainer = _cookieContainer, UseCookies = true })
+            using (var httpClient = new HttpClient(httpHandler))
+            using (var apiContent = new FormUrlEncodedContent(apiParams))
+            using (var apiResult = await httpClient.PostAsync(_cred.Value.Endpoint, apiContent))
+            {
+                apiResult.EnsureSuccessStatusCode();
+                dynamic apiResponse = JsonConvert.DeserializeObject(await apiResult.Content.ReadAsStringAsync());
+
+                if (apiResponse.parse != null)
+                {
+                    ulong changesetId = apiResponse.parse.revid;
+                    ulong pageId = apiResponse.parse.pageid;
+                    string parsedContent = apiResponse.parse.text;
+
+                    metadata.ChangeSetId = changesetId;
+                    metadata.PageId = pageId;
+
+                    return (metadata, parsedContent);
+                }
+            }
+
+            return (null, null);
         }
     }
 }

@@ -11,7 +11,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.ApplicationInsights;
 using Substrate.ContentPipeline.Publisher.Configuration;
 using Substrate.ContentPipeline.Publisher.DataAccess;
-using Substrate.ContentPipeline.Publisher.Remote;
+using Substrate.MediaWiki.Configuration;
+using Substrate.MediaWiki.Remote;
 
 namespace Substrate.ContentPipeline.Publisher
 {

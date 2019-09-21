@@ -2,7 +2,7 @@
 
 using System;
 
-namespace Substrate.ContentPipeline.Publisher.Configuration
+namespace Substrate.MediaWiki.Configuration
 {
     public class ApiCredentials
     {

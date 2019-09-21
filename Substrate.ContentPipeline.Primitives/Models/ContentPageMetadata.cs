@@ -6,8 +6,7 @@ namespace Substrate.ContentPipeline.Primitives.Models
 {
     public class ContentPageMetadata
     {
-        public ulong CurrentChangeSetId { get; set; }
-        public DateTimeOffset CurrentTimestamp { get; set; }
-        public int NamespaceId { get; set; }
+        public ulong ChangeSetId { get; set; }
+        public ulong PageId { get; set; }
     }
 }

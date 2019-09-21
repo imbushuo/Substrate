@@ -5,6 +5,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.ContentPipeline.P
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.ContentPipeline.Primitives", "Substrate.ContentPipeline.Primitives\Substrate.ContentPipeline.Primitives.csproj", "{E4E65DA2-596C-4C32-A64E-43FEA865507C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.Edge", "Substrate.Edge\Substrate.Edge.csproj", "{A57B0988-22A6-44D2-8F4D-E00A687F3D6E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.MediaWiki.Remote", "Substrate.MediaWiki.Remote\Substrate.MediaWiki.Remote.csproj", "{763BC773-1BC6-477F-8FDB-2FE48976C8D2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,5 +23,13 @@ Global
 		{E4E65DA2-596C-4C32-A64E-43FEA865507C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E4E65DA2-596C-4C32-A64E-43FEA865507C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E4E65DA2-596C-4C32-A64E-43FEA865507C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A57B0988-22A6-44D2-8F4D-E00A687F3D6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A57B0988-22A6-44D2-8F4D-E00A687F3D6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A57B0988-22A6-44D2-8F4D-E00A687F3D6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A57B0988-22A6-44D2-8F4D-E00A687F3D6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{763BC773-1BC6-477F-8FDB-2FE48976C8D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{763BC773-1BC6-477F-8FDB-2FE48976C8D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{763BC773-1BC6-477F-8FDB-2FE48976C8D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{763BC773-1BC6-477F-8FDB-2FE48976C8D2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

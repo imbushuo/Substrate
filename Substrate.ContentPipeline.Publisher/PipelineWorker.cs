@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Substrate.ContentPipeline.Publisher.DataAccess;
-using Substrate.ContentPipeline.Publisher.Remote;
+using Substrate.MediaWiki.Remote;
 
 namespace Substrate.ContentPipeline.Publisher
 {
