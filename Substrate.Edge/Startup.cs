@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Substrate.Edge.Caching;
+using Substrate.Edge.Configuration;
 using Substrate.MediaWiki.Configuration;
 using Substrate.MediaWiki.Remote;
 
@@ -30,6 +31,7 @@ namespace Substrate.Edge
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.Configure<ApiCredentials>(Configuration.GetSection(nameof(ApiCredentials)));
+            services.Configure<CachingConfig>(Configuration.GetSection(nameof(CachingConfig)));
             services.AddSingleton<MediaWikiApiServices>();
             services.AddScoped<PageRepository>();
         }
