@@ -53,7 +53,9 @@ namespace Substrate.ContentPipeline.Publisher
                 .Configure<RuntimeDirectory>(
                     Configuration.GetSection(nameof(RuntimeDirectory)))
                 .Configure<ServiceBusConfig>(
-                    Configuration.GetSection(nameof(ServiceBusConfig)));
+                    Configuration.GetSection(nameof(ServiceBusConfig)))
+                .Configure<Telemetry>(
+                    Configuration.GetSection(nameof(Telemetry)));
 
             _channel = new InMemoryChannel();
             services.Configure<TelemetryConfiguration>((config) =>

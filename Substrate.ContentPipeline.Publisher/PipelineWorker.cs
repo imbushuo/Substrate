@@ -7,11 +7,14 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Azure.ServiceBus;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Substrate.ContentPipeline.Primitives.Configuration;
 using Substrate.ContentPipeline.Primitives.Models;
+using Substrate.ContentPipeline.Publisher.Configuration;
 using Substrate.ContentPipeline.Publisher.DataAccess;
 using Substrate.MediaWiki.Remote;
 
@@ -20,6 +23,7 @@ namespace Substrate.ContentPipeline.Publisher
     public class PipelineWorker
     {
         private IOptions<ServiceBusConfig> _sbConfig;
+        private IOptions<Telemetry> _telemetryConfig;
 
         private ILogger<PipelineWorker> _logger;
         private MediaWikiApiServices _apiSvc;
@@ -31,10 +35,13 @@ namespace Substrate.ContentPipeline.Publisher
         private ITopicClient _topicClient;
         private BinaryFormatter _formatter;
 
+        private TelemetryClient _telemetryClient;
+
         public PipelineWorker(MediaWikiApiServices apiService,
             LocalStateRepository stateRepo,
             ILogger<PipelineWorker> logger,
-            IOptions<ServiceBusConfig> sbConfig)
+            IOptions<ServiceBusConfig> sbConfig,
+            IOptions<Telemetry> telemetryConfig)
         {
             _apiSvc = apiService;
             _stateRepo = stateRepo;
@@ -43,6 +50,12 @@ namespace Substrate.ContentPipeline.Publisher
             _sbConfig = sbConfig;
             _topicClient = new TopicClient(_sbConfig.Value.ConnectionString, _sbConfig.Value.ContentPublishTopic);
             _formatter = new BinaryFormatter();
+            _telemetryConfig = telemetryConfig;
+
+            var configuration = TelemetryConfiguration.Active;
+            configuration.InstrumentationKey = _telemetryConfig.Value.InstrumentationKey;
+
+            _telemetryClient = new TelemetryClient(configuration);
         }
 
         private async Task<IPrincipal> RefreshSessionAsync()
@@ -71,6 +84,10 @@ namespace Substrate.ContentPipeline.Publisher
                 catch (Exception exc)
                 {
                     _logger.LogError(exc, "EventBus exception; enter retry");
+                    _telemetryClient.TrackException(exc, new Dictionary<string, string>
+                    {
+                        { "Category", "SendBatchMessagesWithRetry" }
+                    });
                 }
             }
         }
@@ -121,11 +138,19 @@ namespace Substrate.ContentPipeline.Publisher
                 catch (Exception exc)
                 {
                     _logger.LogError(exc, "MW failed to retrieve recent changes");
+                    _telemetryClient.TrackException(exc, new Dictionary<string, string>
+                    {
+                        { "Category", "GetRecentChangesSinceAsync" }
+                    });
                     await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
                     continue;
                 }
 
                 _logger.LogInformation($"{changeLists.Count} item(s) retrieved");
+                _telemetryClient.TrackEvent("NewItemIngestion", null, new Dictionary<string, double>
+                {
+                    { "Count", changeLists.Count }
+                });
 
                 // Update time stamp if new item retrieved
                 if (changeLists.Count > 0)
