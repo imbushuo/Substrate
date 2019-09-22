@@ -1,14 +1,11 @@
-﻿using System;
-using System.Net;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Substrate.Edge.Caching;
 using Substrate.MediaWiki.Remote;
 
 namespace Substrate.Edge.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
+    [Controller]
     public class PagesController : ControllerBase
     {
         private PageRepository _cache;
@@ -22,11 +19,13 @@ namespace Substrate.Edge.Controllers
             _cache = cache;
         }
 
-        [HttpGet("{title}")]
-        public async Task<IActionResult> Get(string title)
+        [HttpGet]
+        public async Task<IActionResult> GetPage()
         {
-            if (title != null)
+            if (Request.Path.Value != null)
             {
+                // Trim the forward slash
+                var title = Request.Path.Value.Substring(1);
 
                 // Cache
                 var cacheContent = _cache.GetPageContent(title);
@@ -35,7 +34,7 @@ namespace Substrate.Edge.Controllers
                     return File(cacheContent, ContentType);
                 }
 
-                var (metadata, newContent) = await _apiService.GetPageAsync(WebUtility.UrlDecode(title), null);
+                var (metadata, newContent) = await _apiService.GetPageAsync(title, null);
                 if (newContent != null)
                 {
                     _cache.PutPageContent(title, metadata, newContent);

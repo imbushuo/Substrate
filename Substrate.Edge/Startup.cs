@@ -46,7 +46,12 @@ namespace Substrate.Edge
             }
 
             app.UseHttpsRedirection();
-            app.UseMvc();
+            app.UseMvc(routes =>
+            {
+                routes.MapRoute("default", "{*url}",
+                    new { controller = "Pages", action = "GetPage" }
+                );
+            });
         }
     }
 }
