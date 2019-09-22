@@ -4,6 +4,7 @@ using System;
 
 namespace Substrate.ContentPipeline.Primitives.Models
 {
+    [Serializable]
     public class ContentPageChangeEventArgs
     {
         public DateTimeOffset EventTimeStamp { get; set; }

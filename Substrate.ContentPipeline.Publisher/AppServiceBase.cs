@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.ApplicationInsights;
+using Substrate.ContentPipeline.Primitives.Configuration;
 using Substrate.ContentPipeline.Publisher.Configuration;
 using Substrate.ContentPipeline.Publisher.DataAccess;
 using Substrate.MediaWiki.Configuration;
@@ -50,7 +51,9 @@ namespace Substrate.ContentPipeline.Publisher
                 .Configure<ApiCredentials>(
                     Configuration.GetSection(nameof(ApiCredentials)))
                 .Configure<RuntimeDirectory>(
-                    Configuration.GetSection(nameof(RuntimeDirectory)));
+                    Configuration.GetSection(nameof(RuntimeDirectory)))
+                .Configure<ServiceBusConfig>(
+                    Configuration.GetSection(nameof(ServiceBusConfig)));
 
             _channel = new InMemoryChannel();
             services.Configure<TelemetryConfiguration>((config) =>
