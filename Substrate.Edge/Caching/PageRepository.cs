@@ -1,0 +1,81 @@
+﻿// Copyright 2019 The Lawrence Industry and its affiliates. All rights reserved.
+
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RocksDbSharp;
+using Substrate.ContentPipeline.Primitives.Models;
+using Substrate.Edge.Configuration;
+
+namespace Substrate.Edge.Caching
+{
+    public class PageRepository
+    {
+        private IOptions<CachingConfig> _cachingConfig;
+        private ILogger<CachingConfig> _logger;
+        private RocksDb _dbInstance;
+        private BinaryFormatter _formatter;
+
+        public PageRepository(IOptions<CachingConfig> cachingConfig,
+            ILogger<CachingConfig> logger)
+        {
+            _cachingConfig = cachingConfig;
+            _logger = logger;
+
+            var options = new DbOptions()
+                .SetCreateIfMissing(true);
+
+            _dbInstance = RocksDb.OpenWithTtl(options,
+                $"{_cachingConfig.Value.Path}/PageCache.db",
+                _cachingConfig.Value.CacheTimeToLive);
+            _formatter = new BinaryFormatter();
+        }
+
+        public byte[] GetPageContent(string title)
+        {
+            return _dbInstance.Get(Encoding.UTF8.GetBytes($"{title}@Content"));
+        }
+
+        public ContentPageMetadata GetPageMetadata(string title)
+        {
+            var serializedMetadata = _dbInstance.Get(Encoding.UTF8.GetBytes($"{title}@Metadata"));
+            if (serializedMetadata != null)
+            {
+                using (var metadataStream = new MemoryStream(serializedMetadata))
+                {
+                    var prevMetadata = (ContentPageMetadata)_formatter.Deserialize(metadataStream);
+                    return prevMetadata;
+                }
+            }
+
+            return null;
+        }
+
+        public void PutPageContent(string title, ContentPageMetadata meta, byte[] pageContent)
+        {
+            var serializedMetadata = _dbInstance.Get(Encoding.UTF8.GetBytes($"{title}@Metadata"));
+            if (serializedMetadata != null)
+            {
+                using (var metadataStream = new MemoryStream(serializedMetadata))
+                {
+                    var prevMetadata = (ContentPageMetadata) _formatter.Deserialize(metadataStream);
+                    if (prevMetadata.ChangeSetId > meta.ChangeSetId)
+                    {
+                        // Update is not required
+                        _logger.LogWarning($"Cache update request for ${title} has rev {prevMetadata.ChangeSetId} > {meta.ChangeSetId}");
+                        return;
+                    }
+                }
+            }
+
+            using (var metadataStream = new MemoryStream())
+            {
+                _formatter.Serialize(metadataStream, meta);
+                _dbInstance.Put(Encoding.UTF8.GetBytes($"{title}@Metadata"), metadataStream.GetBuffer());
+                _dbInstance.Put(Encoding.UTF8.GetBytes($"{title}@Content"), pageContent);
+            }
+        }
+    }
+}

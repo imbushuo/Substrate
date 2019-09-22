@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Substrate.Edge.Caching;
 using Substrate.MediaWiki.Configuration;
 using Substrate.MediaWiki.Remote;
 
@@ -30,6 +31,7 @@ namespace Substrate.Edge
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.Configure<ApiCredentials>(Configuration.GetSection(nameof(ApiCredentials)));
             services.AddSingleton<MediaWikiApiServices>();
+            services.AddScoped<PageRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
