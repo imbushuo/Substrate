@@ -48,6 +48,10 @@ namespace Substrate.Edge
             app.UseHttpsRedirection();
             app.UseMvc(routes =>
             {
+                routes.MapRoute("mainpage-forwarded", "/",
+                    new { controller = "Pages", action = "Index" }
+                );
+
                 routes.MapRoute("default", "{*url}",
                     new { controller = "Pages", action = "GetPage" }
                 );

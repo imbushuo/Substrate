@@ -20,6 +20,12 @@ namespace Substrate.Edge.Controllers
         }
 
         [HttpGet]
+        public IActionResult Index()
+        {
+            return Redirect("/Mainpage");
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetPage()
         {
             if (Request.Path.Value != null)
