@@ -6,7 +6,6 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.ServiceBus;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -22,39 +21,36 @@ namespace Substrate.Edge.Caching
         private IOptions<ServiceBusConfig> _sbConfig;
 
         private CancellationTokenSource _cancellationTokenSource;
-        private IServiceProvider _provider;
-        private IServiceScopeFactory _scopeFactory;
         private ISubscriptionClient _subClient;
 
         private MediaWikiApiServices _apiClient;
         private PageRepository _cache;
 
-        public PageCacheUpdater(IServiceProvider provider,
-            IOptions<ServiceBusConfig> sbConfig,
+        private static readonly TimeSpan TokenValidity = TimeSpan.FromDays(2);
+
+        public PageCacheUpdater(IOptions<ServiceBusConfig> sbConfig,
             ILogger<PageCacheUpdater> logger,
             MediaWikiApiServices apiClient,
             PageRepository cache)
         {
             _logger = logger;
-            _provider = provider;
             _sbConfig = sbConfig;
             _subClient = new SubscriptionClient(
                 _sbConfig.Value.ConnectionString,
                 _sbConfig.Value.ContentPublishTopic,
                 _sbConfig.Value.Subscription);
             _cancellationTokenSource = new CancellationTokenSource();
-            _scopeFactory = _provider.GetRequiredService<IServiceScopeFactory>();
             _apiClient = apiClient;
             _cache = cache;
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Background cache updater is starting");
+            await _apiClient.LoginAsync();
+
             RunTaskLoop(_cancellationTokenSource.Token);
             _logger.LogInformation("Background cache updater started");
-
-            return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
@@ -78,7 +74,11 @@ namespace Substrate.Edge.Caching
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(500, cancellationToken);
+                if (DateTimeOffset.Now - _apiClient.LastLogin > TokenValidity)
+                {
+                    await _apiClient.LoginAsync();
+                }
+                await Task.Delay(1000, cancellationToken);
             }
 
             await _subClient.CloseAsync();
@@ -86,11 +86,6 @@ namespace Substrate.Edge.Caching
 
         private async Task HandleMessageAsync(Message message, CancellationToken cancellationToken)
         {
-            if (_apiClient.CurrentIdentity == null || DateTimeOffset.Now - _apiClient.LastLogin > TimeSpan.FromDays(2))
-            {
-                await _apiClient.LoginAsync();
-            }
-
             var formatter = new BinaryFormatter();
             if (message.Body == null)
             {

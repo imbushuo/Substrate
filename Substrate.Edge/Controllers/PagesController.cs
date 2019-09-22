@@ -13,7 +13,6 @@ namespace Substrate.Edge.Controllers
     {
         private PageRepository _cache;
         private MediaWikiApiServices _apiService;
-        private static readonly TimeSpan TokenValidity = TimeSpan.FromDays(2);
 
         private const string ContentType = "text/html; charset=utf-8";
 
@@ -28,11 +27,6 @@ namespace Substrate.Edge.Controllers
         {
             if (title != null)
             {
-                if (_apiService.CurrentIdentity == null ||
-                DateTimeOffset.Now - _apiService.LastLogin > TokenValidity)
-                {
-                    await _apiService.LoginAsync();
-                }
 
                 // Cache
                 var cacheContent = _cache.GetPageContent(title);
