@@ -70,7 +70,7 @@ namespace Substrate.ContentPipeline.Publisher
                 logger.AddDebug();
 #endif
                 logger.AddFilter<ApplicationInsightsLoggerProvider>(
-                    "", LogLevel.Information);
+                    "", LogLevel.Warning);
 
                 logger.AddApplicationInsights(
                     Configuration["Telemetry:InstrumentationKey"]);
