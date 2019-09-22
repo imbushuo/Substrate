@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Substrate.ContentPipeline.Primitives.Configuration;
 using Substrate.Edge.Caching;
 using Substrate.Edge.Configuration;
 using Substrate.MediaWiki.Configuration;
@@ -32,8 +33,11 @@ namespace Substrate.Edge
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             services.Configure<ApiCredentials>(Configuration.GetSection(nameof(ApiCredentials)));
             services.Configure<CachingConfig>(Configuration.GetSection(nameof(CachingConfig)));
+            services.Configure<ServiceBusConfig>(Configuration.GetSection(nameof(ServiceBusConfig)));
+
             services.AddSingleton<MediaWikiApiServices>();
-            services.AddScoped<PageRepository>();
+            services.AddSingleton<PageRepository>();
+            services.AddHostedService<PageCacheUpdater>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

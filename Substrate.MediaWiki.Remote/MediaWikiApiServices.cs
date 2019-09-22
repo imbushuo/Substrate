@@ -83,7 +83,7 @@ namespace Substrate.MediaWiki.Remote
                     dynamic apiResponse = JsonConvert.DeserializeObject(await apiResult.Content.ReadAsStringAsync());
                     if (((string)apiResponse.login.result) != "Success")
                     {
-                        throw new InvalidOperationException($"Remote login failed: {apiResponse.login.result}");
+                        throw new InvalidOperationException($"Remote login failed: {apiResponse.login}");
                     }
 
                     CurrentIdentity = new GenericPrincipal(

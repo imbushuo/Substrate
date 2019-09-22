@@ -1,5 +1,6 @@
 ﻿// Copyright 2019 The Lawrence Industry and its affiliates. All rights reserved.
 
+using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
@@ -11,7 +12,7 @@ using Substrate.Edge.Configuration;
 
 namespace Substrate.Edge.Caching
 {
-    public class PageRepository
+    public class PageRepository : IDisposable
     {
         private IOptions<CachingConfig> _cachingConfig;
         private ILogger<CachingConfig> _logger;
@@ -35,11 +36,15 @@ namespace Substrate.Edge.Caching
 
         public byte[] GetPageContent(string title)
         {
+            if (title == null) return null;
+
             return _dbInstance.Get(Encoding.UTF8.GetBytes($"{title}@Content"));
         }
 
         public ContentPageMetadata GetPageMetadata(string title)
         {
+            if (title == null) return null;
+
             var serializedMetadata = _dbInstance.Get(Encoding.UTF8.GetBytes($"{title}@Metadata"));
             if (serializedMetadata != null)
             {
@@ -55,6 +60,8 @@ namespace Substrate.Edge.Caching
 
         public void PutPageContent(string title, ContentPageMetadata meta, byte[] pageContent)
         {
+            if (title == null || meta == null) return;
+
             var serializedMetadata = _dbInstance.Get(Encoding.UTF8.GetBytes($"{title}@Metadata"));
             if (serializedMetadata != null)
             {
@@ -64,7 +71,7 @@ namespace Substrate.Edge.Caching
                     if (prevMetadata.ChangeSetId > meta.ChangeSetId)
                     {
                         // Update is not required
-                        _logger.LogWarning($"Cache update request for ${title} has rev {prevMetadata.ChangeSetId} > {meta.ChangeSetId}");
+                        _logger.LogWarning($"Cache update request for {title} has rev {prevMetadata.ChangeSetId} > {meta.ChangeSetId}");
                         return;
                     }
                 }
@@ -77,5 +84,32 @@ namespace Substrate.Edge.Caching
                 _dbInstance.Put(Encoding.UTF8.GetBytes($"{title}@Content"), pageContent);
             }
         }
+
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _dbInstance.Dispose();
+                }
+
+                _dbInstance = null;
+                disposedValue = true;
+            }
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            // TODO: uncomment the following line if the finalizer is overridden above.
+            // GC.SuppressFinalize(this);
+        }
+        #endregion
     }
 }

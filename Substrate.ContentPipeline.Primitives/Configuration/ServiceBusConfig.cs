@@ -8,5 +8,6 @@ namespace Substrate.ContentPipeline.Primitives.Configuration
     {
         public string ConnectionString { get; set; }
         public string ContentPublishTopic { get; set; }
+        public string Subscription { get; set; }
     }
 }
