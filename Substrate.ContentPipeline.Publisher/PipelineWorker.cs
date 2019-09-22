@@ -11,6 +11,7 @@ using Microsoft.Azure.ServiceBus;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Substrate.ContentPipeline.Primitives.Configuration;
+using Substrate.ContentPipeline.Primitives.Models;
 using Substrate.ContentPipeline.Publisher.DataAccess;
 using Substrate.MediaWiki.Remote;
 
@@ -111,7 +112,18 @@ namespace Substrate.ContentPipeline.Publisher
                 // Get last access time stamp from database
                 lastAccess = _stateRepo.Get<DateTimeOffset>(nameof(lastAccess));
                 var currentTime = DateTimeOffset.Now;
-                var changeLists = await _apiSvc.GetRecentChangesSinceAsync(lastAccess);
+
+                List<ContentPageChangeEventArgs> changeLists = null;
+                try
+                {
+                    changeLists = await _apiSvc.GetRecentChangesSinceAsync(lastAccess);
+                }
+                catch (Exception exc)
+                {
+                    _logger.LogError(exc, "MW failed to retrieve recent changes");
+                    await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
+                    continue;
+                }
 
                 _logger.LogInformation($"{changeLists.Count} item(s) retrieved");
 
