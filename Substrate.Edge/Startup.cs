@@ -46,6 +46,12 @@ namespace Substrate.Edge
             }
 
             app.UseHttpsRedirection();
+
+            app.UseCors(builder =>
+            {
+                builder.AllowAnyOrigin();
+            });
+            
             app.UseMvc(routes =>
             {
                 routes.MapRoute("mainpage-forwarded", "/",
