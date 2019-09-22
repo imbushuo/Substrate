@@ -29,7 +29,7 @@ namespace Substrate.Edge.Caching
                 .SetCreateIfMissing(true);
 
             _dbInstance = RocksDb.OpenWithTtl(options,
-                $"{_cachingConfig.Value.Path}/PageCache.db",
+                Path.Combine(_cachingConfig.Value.Path, "PageCache.db"),
                 _cachingConfig.Value.CacheTimeToLive);
             _formatter = new BinaryFormatter();
         }

@@ -26,7 +26,7 @@ namespace Substrate.ContentPipeline.Publisher.DataAccess
             _formatter = new BinaryFormatter();
 
             var options = new DbOptions().SetCreateIfMissing(true);
-            _dbInstance = RocksDb.Open(options, $"{_runtimeDirectory.Value.LocalStateRepositoryDb}/LocalOptions.db");
+            _dbInstance = RocksDb.Open(options, Path.Combine(_runtimeDirectory.Value.LocalStateRepositoryDb, "LocalOptions.db"));
         }
 
         public void Put<T>(string key, T item)
