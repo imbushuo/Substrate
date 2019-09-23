@@ -74,11 +74,18 @@ namespace Substrate.Edge.Caching
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (DateTimeOffset.Now - _apiClient.LastLogin > TokenValidity)
+                try
                 {
-                    await _apiClient.LoginAsync();
+                    if (DateTimeOffset.Now - _apiClient.LastLogin > TokenValidity)
+                    {
+                        await _apiClient.LoginAsync();
+                    }
+                    await Task.Delay(1000, cancellationToken);
                 }
-                await Task.Delay(1000, cancellationToken);
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
             }
 
             await _subClient.CloseAsync();
