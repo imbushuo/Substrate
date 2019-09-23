@@ -82,7 +82,7 @@ namespace Substrate.Edge.Caching
                     }
                     await Task.Delay(1000, cancellationToken);
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
                     break;
                 }
@@ -136,7 +136,16 @@ namespace Substrate.Edge.Caching
 
         private Task ExceptionReceivedHandler(ExceptionReceivedEventArgs arg)
         {
-            _logger.LogError(arg.Exception, "Error in message handling");
+            if (arg.Exception.GetType() != typeof(TaskCanceledException) &&
+                arg.Exception.GetType() != typeof(OperationCanceledException))
+            {
+                _logger.LogError(arg.Exception, "Error in message handling");
+            }
+            else
+            {
+                _logger.LogInformation("Message handler routine has been cancelled");
+            }
+            
             return Task.CompletedTask;
         }
     }
