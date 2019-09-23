@@ -23,7 +23,11 @@ namespace Substrate.Edge
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc(options =>
+            {
+                options.EnableEndpointRouting = false;
+            }).SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+
             services.Configure<ApiCredentials>(Configuration.GetSection(nameof(ApiCredentials)));
             services.Configure<CachingConfig>(Configuration.GetSection(nameof(CachingConfig)));
             services.Configure<ServiceBusConfig>(Configuration.GetSection(nameof(ServiceBusConfig)));
@@ -36,9 +40,9 @@ namespace Substrate.Edge
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
+            if (env.EnvironmentName == "Development")
             {
                 app.UseDeveloperExceptionPage();
             }
@@ -58,6 +62,10 @@ namespace Substrate.Edge
             {
                 routes.MapRoute("mainpage-forwarded", "/",
                     new { controller = "Pages", action = "Index" }
+                );
+
+                routes.MapRoute("metadata", "/Special:EdgeCacheStatus/{**id}",
+                    new { controller = "Pages", action = "GetMetadata" }
                 );
 
                 routes.MapRoute("default", "{*url}",

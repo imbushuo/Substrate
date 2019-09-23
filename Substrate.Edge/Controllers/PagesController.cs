@@ -50,5 +50,20 @@ namespace Substrate.Edge.Controllers
             
             return NotFound();
         }
+
+        [HttpGet]
+        public IActionResult GetMetadata(string id)
+        {
+            if (id != null)
+            {
+                var metadata = _cache.GetPageMetadata(id);
+                if (metadata != null)
+                {
+                    return Ok(metadata);
+                }
+            }
+
+            return NotFound();
+        }
     }
 }
