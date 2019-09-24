@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Principal;
 using System.Threading;
@@ -160,11 +161,16 @@ namespace Substrate.ContentPipeline.Publisher
                 }
 
                 // Enqueue update events into message topics, send in batch manner
+                var clusteredUpdates = changeLists.Where(i => i.Title != null).GroupBy(i => i.Title);
                 var updateMessages = new List<Message>();
-                foreach (var update in changeLists)
+
+                foreach (var updateSeries in clusteredUpdates)
                 {
+                    var sortedSeries = updateSeries.OrderByDescending(i => i.ChangesetId);
+                    var topItem = sortedSeries.First();
+
                     var memoryStream = new MemoryStream();
-                    _formatter.Serialize(memoryStream, update);
+                    _formatter.Serialize(memoryStream, topItem);
                     updateMessages.Add(new Message(memoryStream.GetBuffer()));
 
                     if (updateMessages.Count > 50)
