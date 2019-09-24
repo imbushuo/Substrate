@@ -8,6 +8,7 @@
     <Owners>The Lawrence Industry and its affiliates</Owners>
     <Summary>Primitive packages for Substrate content pipeline</Summary>
     <Title>Substrate.ContentPipeline.Primitives</Title>
+    <ReleaseVersion>0.2</ReleaseVersion>
   </PropertyGroup>
 
   <ItemGroup>
