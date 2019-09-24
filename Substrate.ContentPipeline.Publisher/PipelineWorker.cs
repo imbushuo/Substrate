@@ -53,7 +53,7 @@ namespace Substrate.ContentPipeline.Publisher
             _formatter = new BinaryFormatter();
             _telemetryConfig = telemetryConfig;
 
-            var configuration = TelemetryConfiguration.Active;
+            var configuration = TelemetryConfiguration.CreateDefault();
             configuration.InstrumentationKey = _telemetryConfig.Value.InstrumentationKey;
 
             _telemetryClient = new TelemetryClient(configuration);
