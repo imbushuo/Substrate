@@ -68,7 +68,7 @@ namespace Substrate.Edge
                     new { controller = "Pages", action = "GetMetadata" }
                 );
 
-                routes.MapRoute("default", "{*url}",
+                routes.MapRoute("default", "{**id}",
                     new { controller = "Pages", action = "GetPage" }
                 );
             });

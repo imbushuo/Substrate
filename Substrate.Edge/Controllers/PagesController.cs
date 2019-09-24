@@ -26,24 +26,21 @@ namespace Substrate.Edge.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPage()
+        public async Task<IActionResult> GetPage(string id)
         {
-            if (Request.Path.Value != null)
+            if (id != null)
             {
-                // Trim the forward slash
-                var title = Request.Path.Value.Substring(1);
-
                 // Cache
-                var cacheContent = _cache.GetPageContent(title);
+                var cacheContent = _cache.GetPageContent(id);
                 if (cacheContent != null)
                 {
                     return File(cacheContent, ContentType);
                 }
 
-                var (metadata, newContent) = await _apiService.GetPageAsync(title, null);
+                var (metadata, newContent) = await _apiService.GetPageAsync(id, null);
                 if (newContent != null)
                 {
-                    _cache.PutPageContent(title, metadata, newContent);
+                    _cache.PutPageContent(id, metadata, newContent);
                     return File(newContent, ContentType);
                 }
             }
