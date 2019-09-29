@@ -119,37 +119,34 @@ namespace Substrate.ContributionGraph.Timeseries
 
                 if (result.Results != null)
                 {
-                    foreach (var sample in result.Results)
+                    var partitionGroup = result.Results.GroupBy(i => i.PartitionKey);
+
+                    foreach (var p in partitionGroup)
                     {
-                        var partitionGroup = result.Results.GroupBy(i => i.PartitionKey);
-
-                        foreach (var p in partitionGroup)
+                        try
                         {
-                            try
+                            var batch = new TableBatchOperation();
+
+                            foreach (var i in p)
                             {
-                                var batch = new TableBatchOperation();
-
-                                foreach (var i in p)
-                                {
-                                    batch.Add(TableOperation.Delete(i));
-                                    if (batch.Count % 50 == 0)
-                                    {
-                                        await tsTable.ExecuteBatchAsync(batch, cancellationToken);
-                                        batch.Clear();
-                                    }
-                                }
-
-                                if (batch.Count > 0)
+                                batch.Add(TableOperation.Delete(i));
+                                if (batch.Count % 50 == 0)
                                 {
                                     await tsTable.ExecuteBatchAsync(batch, cancellationToken);
+                                    batch.Clear();
                                 }
+                            }
 
-                                _logger.LogInformation("TS GC deleted a batch");
-                            }
-                            catch (Exception exc)
+                            if (batch.Count > 0)
                             {
-                                _logger.LogInformation(exc, "TS GC failed to delete a batch but ignored");
+                                await tsTable.ExecuteBatchAsync(batch, cancellationToken);
                             }
+
+                            _logger.LogInformation("TS GC deleted an item");
+                        }
+                        catch (Exception exc)
+                        {
+                            _logger.LogInformation(exc, "TS GC failed to delete a batch but ignored");
                         }
                     }
 

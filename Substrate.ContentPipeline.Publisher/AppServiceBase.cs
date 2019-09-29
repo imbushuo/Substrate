@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.ApplicationInsights;
 using Substrate.ContentPipeline.Primitives.Configuration;
 using Substrate.ContentPipeline.Publisher.Configuration;
 using Substrate.ContentPipeline.Publisher.DataAccess;
+using Substrate.ContributionGraph.Timeseries;
 using Substrate.ContributionGraph.Timeseries.Configuration;
 using Substrate.MediaWiki.Configuration;
 using Substrate.MediaWiki.Remote;
@@ -81,22 +82,39 @@ namespace Substrate.ContentPipeline.Publisher
 
             services.AddScoped<MediaWikiApiServices>();
             services.AddSingleton<LocalStateRepository>();
+            services.AddSingleton<ContributionTsdb>();
             services.AddTransient<PipelineWorker>();
+            services.AddTransient<ContributionTsPreseeder>();
         }
 
         public async Task RunMainLoopAsync(CancellationToken cancellationToken)
         {
             var scopeFactory = ServiceProvider.GetRequiredService<IServiceScopeFactory>();
             var dbInstance = ServiceProvider.GetRequiredService<LocalStateRepository>();
+            var tsInstance = ServiceProvider.GetRequiredService<ContributionTsdb>();
 
             using (var scope = scopeFactory.CreateScope())
             {
-                var worker = scope.ServiceProvider.GetRequiredService<PipelineWorker>();
-                await worker.RunMainLoopAsync(cancellationToken);
+                if (!string.IsNullOrEmpty(Configuration["PreseedContribTs"]))
+                {
+                    var seeder = scope.ServiceProvider.GetRequiredService<ContributionTsPreseeder>();
+                    await seeder.RunSeedingAsync(cancellationToken);
+                }
+                else if (!string.IsNullOrEmpty(Configuration["GcContribTs"]))
+                {
+                    var seeder = scope.ServiceProvider.GetRequiredService<ContributionTsPreseeder>();
+                    await seeder.RunGcAsync(cancellationToken);
+                }
+                else
+                {
+                    var worker = scope.ServiceProvider.GetRequiredService<PipelineWorker>();
+                    await worker.RunMainLoopAsync(cancellationToken);
+                }
             }
 
             _channel.Flush();
             dbInstance.Dispose();
+            tsInstance.Dispose();
         }
     }
 }
