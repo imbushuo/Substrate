@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Substrate.ContentPipeline.Primitives\Substrate.ContentPipeline.Primitives.csproj" />
     <ProjectReference Include="..\Substrate.MediaWiki.Remote\Substrate.MediaWiki.Remote.csproj" />
+    <ProjectReference Include="..\Substrate.ContributionGraph.Timeseries\Substrate.ContributionGraph.Timeseries.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="3.0.0" />

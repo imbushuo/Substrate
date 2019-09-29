@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging.ApplicationInsights;
 using Substrate.ContentPipeline.Primitives.Configuration;
 using Substrate.ContentPipeline.Publisher.Configuration;
 using Substrate.ContentPipeline.Publisher.DataAccess;
+using Substrate.ContributionGraph.Timeseries.Configuration;
 using Substrate.MediaWiki.Configuration;
 using Substrate.MediaWiki.Remote;
 
@@ -55,7 +56,9 @@ namespace Substrate.ContentPipeline.Publisher
                 .Configure<ServiceBusConfig>(
                     Configuration.GetSection(nameof(ServiceBusConfig)))
                 .Configure<Telemetry>(
-                    Configuration.GetSection(nameof(Telemetry)));
+                    Configuration.GetSection(nameof(Telemetry)))
+                .Configure<ContributionTsDbConfig>(
+                    Configuration.GetSection(nameof(ContributionTsDbConfig)));
 
             _channel = new InMemoryChannel();
             services.Configure<TelemetryConfiguration>((config) =>

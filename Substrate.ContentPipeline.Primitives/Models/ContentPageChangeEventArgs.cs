@@ -10,17 +10,19 @@ namespace Substrate.ContentPipeline.Primitives.Models
         public DateTimeOffset EventTimeStamp { get; set; }
         public string Title { get; set; }
         public ulong ChangesetId { get; set; }
+        public string User { get; set; }
 
         public ContentPageChangeEventArgs()
         {
         }
 
         public ContentPageChangeEventArgs(string title, ulong changesetId,
-            DateTimeOffset timestamp)
+            DateTimeOffset timestamp, string user)
         {
             Title = title;
             ChangesetId = changesetId;
             EventTimeStamp = timestamp;
+            User = user;
         }
     }
 }

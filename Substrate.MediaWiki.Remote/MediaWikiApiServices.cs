@@ -109,7 +109,8 @@ namespace Substrate.MediaWiki.Remote
                 new KeyValuePair<string, string>("list", "recentchanges"),
                 new KeyValuePair<string, string>("format", "json"),
                 new KeyValuePair<string, string>("formatversion", "2"),
-                new KeyValuePair<string, string>("rclimit", "5000")
+                new KeyValuePair<string, string>("rclimit", "5000"),
+                new KeyValuePair<string, string>("rcprop", "title|timestamp|ids|user")
             };
 
             if (since != null)
@@ -143,11 +144,12 @@ namespace Substrate.MediaWiki.Remote
                         string title = change.title;
                         string changesetIdString = change.revid;
                         string timestampString = change.timestamp;
+                        string user = change.user;
 
                         if (ulong.TryParse(changesetIdString, out ulong csId) &&
                             DateTimeOffset.TryParse(timestampString, out DateTimeOffset t))
                         {
-                            retList.Add(new ContentPageChangeEventArgs(title, csId, t));
+                            retList.Add(new ContentPageChangeEventArgs(title, csId, t, user));
                         }
                     }
                 }
