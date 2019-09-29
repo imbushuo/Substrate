@@ -4,7 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
@@ -66,7 +66,7 @@ namespace Substrate.ContributionGraph.Timeseries
             var contToken = default(TableContinuationToken);
             var gcQuery = tsTable.CreateQuery<ContribSampleEntity>().Where(
                 TableQuery.CombineFilters(
-                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, username),
+                    TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, WebUtility.UrlEncode(username)),
                     TableOperators.And,
                     TableQuery.GenerateFilterConditionForDate("MetricTimeStampUtc",
                     QueryComparisons.GreaterThanOrEqual, notBefore.UtcDateTime)
