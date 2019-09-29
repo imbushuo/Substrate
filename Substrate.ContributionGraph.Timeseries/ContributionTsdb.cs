@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
@@ -64,7 +65,7 @@ namespace Substrate.ContributionGraph.Timeseries
 
             var samples = new List<ContribSampleEntity>();
             var contToken = default(TableContinuationToken);
-            var gcQuery = tsTable.CreateQuery<ContribSampleEntity>().Where(
+            var gcQuery = new TableQuery<ContribSampleEntity>().Where(
                 TableQuery.CombineFilters(
                     TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, WebUtility.UrlEncode(username)),
                     TableOperators.And,
@@ -74,7 +75,7 @@ namespace Substrate.ContributionGraph.Timeseries
 
             do
             {
-                var result = await gcQuery.ExecuteSegmentedAsync(contToken, cancellationToken);
+                var result = await tsTable.ExecuteQuerySegmentedAsync(gcQuery, contToken, cancellationToken);
                 contToken = result.ContinuationToken;
 
                 if (result.Results != null)
@@ -103,7 +104,7 @@ namespace Substrate.ContributionGraph.Timeseries
 
             var notBeforeTime = DateTime.UtcNow.Subtract(TimeSpan.FromDays(_config.Value.RetentionDays));
             var contToken = default(TableContinuationToken);
-            var gcQuery = tsTable.CreateQuery<ContribSampleEntity>().Where(
+            var gcQuery = new TableQuery<ContribSampleEntity>().Where(
                 TableQuery.GenerateFilterConditionForDate(
                     "MetricTimeStampUtc", QueryComparisons.LessThan, notBeforeTime
                 ));
@@ -112,14 +113,44 @@ namespace Substrate.ContributionGraph.Timeseries
 
             do
             {
-                var result = await gcQuery.ExecuteSegmentedAsync(contToken, cancellationToken);
+                var result = await tsTable.ExecuteQuerySegmentedAsync(gcQuery, contToken, cancellationToken);
                 contToken = result.ContinuationToken;
+                _logger.LogInformation("TS GC retrieved a batch");
 
                 if (result.Results != null)
                 {
                     foreach (var sample in result.Results)
                     {
-                        await tsTable.ExecuteAsync(TableOperation.Delete(sample), cancellationToken);
+                        var partitionGroup = result.Results.GroupBy(i => i.PartitionKey);
+
+                        foreach (var p in partitionGroup)
+                        {
+                            try
+                            {
+                                var batch = new TableBatchOperation();
+
+                                foreach (var i in p)
+                                {
+                                    batch.Add(TableOperation.Delete(i));
+                                    if (batch.Count % 50 == 0)
+                                    {
+                                        await tsTable.ExecuteBatchAsync(batch, cancellationToken);
+                                        batch.Clear();
+                                    }
+                                }
+
+                                if (batch.Count > 0)
+                                {
+                                    await tsTable.ExecuteBatchAsync(batch, cancellationToken);
+                                }
+
+                                _logger.LogInformation("TS GC deleted a batch");
+                            }
+                            catch (Exception exc)
+                            {
+                                _logger.LogInformation(exc, "TS GC failed to delete a batch but ignored");
+                            }
+                        }
                     }
 
                     _logger.LogInformation($"TS Garbage Collection deleted batch of {result.Results.Count} item(s)");
