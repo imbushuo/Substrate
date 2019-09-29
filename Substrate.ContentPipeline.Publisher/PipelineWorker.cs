@@ -17,6 +17,8 @@ using Substrate.ContentPipeline.Primitives.Configuration;
 using Substrate.ContentPipeline.Primitives.Models;
 using Substrate.ContentPipeline.Publisher.Configuration;
 using Substrate.ContentPipeline.Publisher.DataAccess;
+using Substrate.ContributionGraph.Timeseries;
+using Substrate.ContributionGraph.Timeseries.Models;
 using Substrate.MediaWiki.Remote;
 
 namespace Substrate.ContentPipeline.Publisher
@@ -38,20 +40,28 @@ namespace Substrate.ContentPipeline.Publisher
 
         private TelemetryClient _telemetryClient;
 
+        private ContributionTsdb _tsdb;
+        private DateTimeOffset _lastGcRun;
+        private DateTimeOffset _lastCacheFlush;
+
         public PipelineWorker(MediaWikiApiServices apiService,
             LocalStateRepository stateRepo,
+            ContributionTsdb tsdb,
             ILogger<PipelineWorker> logger,
             IOptions<ServiceBusConfig> sbConfig,
             IOptions<Telemetry> telemetryConfig)
         {
             _apiSvc = apiService;
             _stateRepo = stateRepo;
+            _tsdb = tsdb;
             _logger = logger;
             _lastLogin = DateTimeOffset.MinValue;
             _sbConfig = sbConfig;
             _topicClient = new TopicClient(_sbConfig.Value.ConnectionString, _sbConfig.Value.ContentPublishTopic);
             _formatter = new BinaryFormatter();
             _telemetryConfig = telemetryConfig;
+            _lastGcRun = DateTimeOffset.Now;
+            _lastCacheFlush = DateTimeOffset.Now;
 
             var configuration = TelemetryConfiguration.CreateDefault();
             configuration.InstrumentationKey = _telemetryConfig.Value.InstrumentationKey;
@@ -127,6 +137,20 @@ namespace Substrate.ContentPipeline.Publisher
                     }
                 }
 
+                // Also run GC periodically
+                if (DateTimeOffset.Now - _lastGcRun > TimeSpan.FromDays(14))
+                {
+                    try
+                    {
+                        await _tsdb.RunGarbageCollectionInXTableAsync(cancellationToken);
+                        _lastGcRun = DateTimeOffset.Now;
+                    }
+                    catch (Exception exc)
+                    {
+                        _logger.LogError(exc, "Failed to run TS GC");
+                    }
+                }
+
                 // Get last access time stamp from database
                 lastAccess = _stateRepo.Get<DateTimeOffset>(nameof(lastAccess));
                 var currentTime = DateTimeOffset.Now;
@@ -180,12 +204,34 @@ namespace Substrate.ContentPipeline.Publisher
                     }
                 }
 
-                // Final one
+                // Final one in message bus
                 await SendBatchMessagesWithRetry(updateMessages);
                 updateMessages.Clear();
 
+                // Ingest edit stats into TS
+                try
+                {
+                    var tsSamples = changeLists.Where(g => g.User != null).Select(k => new ContribSampleEntity(k.User, k.EventTimeStamp, 1));
+                    await _tsdb.IngestSamplesAsync(tsSamples.ToList(), cancellationToken);
+                }
+                catch (Exception exc)
+                {
+                    _logger.LogError(exc, "TS failed to ingest edits");
+                }
+
+                // Flush TSDB cache every hour
+                if (DateTimeOffset.Now - _lastCacheFlush >= TimeSpan.FromHours(1))
+                {
+                    await _tsdb.FlushCacheAsync(cancellationToken);
+                    _lastCacheFlush = DateTimeOffset.Now;
+                }
+
+
                 await Task.Delay(TimeSpan.FromSeconds(15), cancellationToken);
             }
+
+            // Flush local TSDB cache
+            await _tsdb.FlushCacheAsync(default(CancellationToken));
         }
     }
 }
