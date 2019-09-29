@@ -91,15 +91,9 @@ namespace Substrate.ContributionGraph.Timeseries
         {
             var tsTable = _xTableClient.GetTableReference(_config.Value.AzStorageTable);
 
-            // Document said 100 ops as limit; use 50 for our chunks
-            for (int batchBegin = 0; batchBegin < samples.Count; batchBegin += 50)
+            foreach (var sample in samples)
             {
-                var insertOpertions = new TableBatchOperation();
-                for (int i = batchBegin; i < Math.Min(50, samples.Count - batchBegin); i++)
-                {
-                    insertOpertions.Add(TableOperation.InsertOrReplace(samples[batchBegin + i]));
-                }
-                await tsTable.ExecuteBatchAsync(insertOpertions, cancellationToken);
+                await tsTable.ExecuteAsync(TableOperation.Insert(sample), cancellationToken);
             }
         }
 
@@ -123,13 +117,11 @@ namespace Substrate.ContributionGraph.Timeseries
 
                 if (result.Results != null)
                 {
-                    var deleteOperations = new TableBatchOperation();
-                    foreach (var item in result.Results)
+                    foreach (var sample in result.Results)
                     {
-                        deleteOperations.Add(TableOperation.Delete(item));
+                        await tsTable.ExecuteAsync(TableOperation.Delete(sample), cancellationToken);
                     }
 
-                    await tsTable.ExecuteBatchAsync(deleteOperations, cancellationToken);
                     _logger.LogInformation($"TS Garbage Collection deleted batch of {result.Results.Count} item(s)");
                 }
             }
@@ -225,6 +217,9 @@ namespace Substrate.ContributionGraph.Timeseries
             var currentTime = DateTime.UtcNow;
             var cutoffTime = new DateTime(currentTime.Year, currentTime.Month,
                 currentTime.Day, currentTime.Hour, 0, 0, DateTimeKind.Utc);
+            var zeroStream = new MemoryStream();
+            _formatter.Serialize(zeroStream, 0);
+            var zeroBuffer = zeroStream.GetBuffer();
 
             using (var i = _preAggDatabase.NewIterator())
             {
@@ -233,6 +228,7 @@ namespace Substrate.ContributionGraph.Timeseries
                     var k = Encoding.UTF8.GetString(i.Key());
                     var v = (long) _formatter.Deserialize(new MemoryStream(i.Value()));
                     writeBatch.Add(new ContribSampleEntity(k, cutoffTime, v));
+                    _preAggDatabase.Put(i.Key(), zeroBuffer);
                     i.Next();
                 }
             }
