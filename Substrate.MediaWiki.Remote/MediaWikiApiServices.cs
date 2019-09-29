@@ -101,7 +101,7 @@ namespace Substrate.MediaWiki.Remote
         }
 
         public async Task<List<ContentPageChangeEventArgs>> GetRecentChangesSinceAsync(
-            DateTimeOffset? since, long limit = 20000)
+            DateTimeOffset? end, long limit = 20000, DateTimeOffset? since = null)
         {
             var apiBaseParams = new List<KeyValuePair<string, string>>
             {
@@ -113,10 +113,16 @@ namespace Substrate.MediaWiki.Remote
                 new KeyValuePair<string, string>("rcprop", "title|timestamp|ids|user")
             };
 
+            if (end != null)
+            {
+                apiBaseParams.Add(new KeyValuePair<string, string>(
+                    "rcend", end?.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")));
+            }
+
             if (since != null)
             {
                 apiBaseParams.Add(new KeyValuePair<string, string>(
-                    "rcend", since?.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")));
+                    "rcstart", since?.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")));
             }
 
             var retList = new List<ContentPageChangeEventArgs>();
