@@ -29,6 +29,8 @@ namespace Substrate.ContributionGraph.Timeseries
         private RocksDb _preAggDatabase;
         private BinaryFormatter _formatter;
 
+        private bool _bypassLocalCache;
+
         public ContributionTsdb(
             IOptions<ContributionTsDbConfig> tsConfig,
             ILogger<ContributionTsdb> logger
@@ -43,12 +45,16 @@ namespace Substrate.ContributionGraph.Timeseries
             var tsTable = _xTableClient.GetTableReference(_config.Value.AzStorageTable);
             tsTable.CreateIfNotExists();
 
-            var options = new DbOptions().SetCreateIfMissing(true);
-            // 1.5 hours are a bit far exceed the time span but should be okay
-            _preAggDatabase = RocksDb.OpenWithTtl(options,
-                Path.Combine(_config.Value.LocalPreAggCachePath, "PreAggDb"),
-                (int) TimeSpan.FromHours(1.3).TotalSeconds);
-            _formatter = new BinaryFormatter();
+            _bypassLocalCache = string.IsNullOrEmpty(_config.Value.LocalPreAggCachePath);
+            if (!_bypassLocalCache)
+            {
+                var options = new DbOptions().SetCreateIfMissing(true);
+                // 1.5 hours are a bit far exceed the time span but should be okay
+                _preAggDatabase = RocksDb.OpenWithTtl(options,
+                    Path.Combine(_config.Value.LocalPreAggCachePath, "PreAggDb"),
+                    (int)TimeSpan.FromHours(1.3).TotalSeconds);
+                _formatter = new BinaryFormatter();
+            }
         }
 
         private async Task<List<ContribSampleEntity>> GetSamplesFromXTableAsync(string username,
@@ -134,6 +140,8 @@ namespace Substrate.ContributionGraph.Timeseries
 
         public async Task IngestSamplesAsync(List<ContribSampleEntity> samples, CancellationToken cancellationToken)
         {
+            if (_bypassLocalCache) throw new NotSupportedException();
+
             // Cutoff time span is 1 hour
             // Other potion are assumed aggregated and directly ingested into the database
             // The rest are not aggregated and will retain in the RocksDb for a while
@@ -195,12 +203,15 @@ namespace Substrate.ContributionGraph.Timeseries
                 ret.AddRange(samples);
             }
 
-            var kb = Encoding.UTF8.GetBytes(username);
-            var counterBytes = _preAggDatabase.Get(kb);
-            if (counterBytes != null)
+            if (!_bypassLocalCache)
             {
-                var count = (long)_formatter.Deserialize(new MemoryStream(counterBytes));
-                ret.Add(new ContribSampleEntity(username, n, count));
+                var kb = Encoding.UTF8.GetBytes(username);
+                var counterBytes = _preAggDatabase.Get(kb);
+                if (counterBytes != null)
+                {
+                    var count = (long)_formatter.Deserialize(new MemoryStream(counterBytes));
+                    ret.Add(new ContribSampleEntity(username, n, count));
+                }
             }
 
             return ret;
@@ -208,6 +219,8 @@ namespace Substrate.ContributionGraph.Timeseries
 
         public async Task FlushCacheAsync(CancellationToken cancellationToken)
         {
+            if (_bypassLocalCache) throw new NotSupportedException();
+
             var writeBatch = new List<ContribSampleEntity>();
             var currentTime = DateTime.UtcNow;
             var cutoffTime = new DateTime(currentTime.Year, currentTime.Month,
@@ -236,7 +249,7 @@ namespace Substrate.ContributionGraph.Timeseries
             {
                 if (disposing)
                 {
-                    _preAggDatabase.Dispose();
+                    _preAggDatabase?.Dispose();
                 }
 
                 _preAggDatabase = null;
