@@ -101,7 +101,7 @@ namespace Substrate.MediaWiki.Remote
         }
 
         public async Task<List<ContentPageChangeEventArgs>> GetRecentChangesSinceAsync(
-            DateTimeOffset? since)
+            DateTimeOffset? since, long limit = 20000)
         {
             var apiBaseParams = new List<KeyValuePair<string, string>>
             {
@@ -155,8 +155,8 @@ namespace Substrate.MediaWiki.Remote
                 }
             }
             // Consumers should not rely on this mechanism to retrieve all
-            // changes. A hard limit of 20000 has been defined.
-            while (retList.Count < 20000 && !string.IsNullOrEmpty(continueToken));
+            // changes.
+            while ((retList.Count < limit || limit == 0) && !string.IsNullOrEmpty(continueToken));
 
             return retList;
         }
