@@ -20,12 +20,14 @@ namespace Substrate.Edge.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 180)]
         public IActionResult Index()
         {
             return Redirect("/Mainpage");
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 180)]
         public async Task<IActionResult> GetPage(string id)
         {
             if (id != null)
@@ -49,6 +51,7 @@ namespace Substrate.Edge.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 180)]
         public IActionResult GetMetadata(string id)
         {
             if (id != null)

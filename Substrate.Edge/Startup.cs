@@ -30,6 +30,8 @@ namespace Substrate.Edge
                 options.EnableEndpointRouting = false;
             }).SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
 
+            services.AddResponseCaching();
+
             services.Configure<ApiCredentials>(Configuration.GetSection(nameof(ApiCredentials)));
             services.Configure<CachingConfig>(Configuration.GetSection(nameof(CachingConfig)));
             services.Configure<ServiceBusConfig>(Configuration.GetSection(nameof(ServiceBusConfig)));

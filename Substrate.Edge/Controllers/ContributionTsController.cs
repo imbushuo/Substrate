@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -24,6 +22,7 @@ namespace Substrate.Edge.Controllers
         }
 
         [HttpGet]
+        [ResponseCache(Duration = 1800)]
         public async Task<IActionResult> GetTimeSeries(string username, string tz)
         {
             if (username == null) return BadRequest();
