@@ -25,5 +25,8 @@
     <ProjectReference Include="..\Substrate.MediaWiki.Remote\Substrate.MediaWiki.Remote.csproj">
       <GlobalPropertiesToRemove></GlobalPropertiesToRemove>
     </ProjectReference>
+    <ProjectReference Include="..\Substrate.ContributionGraph.Timeseries\Substrate.ContributionGraph.Timeseries.csproj">
+      <GlobalPropertiesToRemove></GlobalPropertiesToRemove>
+    </ProjectReference>
   </ItemGroup>
 </Project>

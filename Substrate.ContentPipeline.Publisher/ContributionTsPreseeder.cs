@@ -38,7 +38,7 @@ namespace Substrate.ContentPipeline.Publisher
 
         public async Task RunSeedingAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Start seeding data of 37 days");
+            _logger.LogInformation("Start seeding data of 14 days");
             if (_apiSvc.CurrentIdentity == null)
             {
                 var id = await _apiSvc.LoginAsync();
@@ -50,7 +50,7 @@ namespace Substrate.ContentPipeline.Publisher
             }
 
             var end = DateTimeOffset.UtcNow;
-            var b = end.Subtract(TimeSpan.FromDays(37));
+            var b = end.Subtract(TimeSpan.FromDays(14));
             int retryCount = 0;
 
             do

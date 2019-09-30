@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Substrate.ContentPipeline.Primitives.Configuration;
+using Substrate.ContributionGraph.Timeseries;
+using Substrate.ContributionGraph.Timeseries.Configuration;
 using Substrate.Edge.Caching;
 using Substrate.Edge.Configuration;
 using Substrate.MediaWiki.Configuration;
@@ -31,10 +33,12 @@ namespace Substrate.Edge
             services.Configure<ApiCredentials>(Configuration.GetSection(nameof(ApiCredentials)));
             services.Configure<CachingConfig>(Configuration.GetSection(nameof(CachingConfig)));
             services.Configure<ServiceBusConfig>(Configuration.GetSection(nameof(ServiceBusConfig)));
+            services.Configure<ContributionTsDbConfig>(Configuration.GetSection(nameof(ContributionTsDbConfig)));
 
             services.AddSingleton<MediaWikiApiServices>();
             services.AddSingleton<PageRepository>();
-            services.AddHostedService<PageCacheUpdater>();
+            services.AddSingleton<ContributionTsdb>();
+            // services.AddHostedService<PageCacheUpdater>();
 
             services.AddApplicationInsightsTelemetry();
         }
@@ -66,6 +70,10 @@ namespace Substrate.Edge
 
                 routes.MapRoute("metadata", "/Special:EdgeCacheStatus/{**id}",
                     new { controller = "Pages", action = "GetMetadata" }
+                );
+
+                routes.MapRoute("contribTs", "/Special:ContributionTimeSeries/{username}/{**tz}",
+                    new { controller = "ContributionTs", action = "GetTimeSeries" }
                 );
 
                 routes.MapRoute("default", "{**id}",
